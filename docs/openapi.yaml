@@ -1,0 +1,366 @@
+openapi: 3.0.3
+info:
+  title: Store Service API
+  version: "1.0"
+  description: REST API для каталога, заказов и отчетов.
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+  /categories:
+    get:
+      summary: Список категорий
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CategoryResponse' }
+    post:
+      summary: Создать категорию
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryRequest' }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CategoryResponse' }
+  /categories/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+    get:
+      summary: Получить категорию
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CategoryResponse' }
+        "404": { description: Not found }
+    put:
+      summary: Обновить категорию
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryRequest' }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CategoryResponse' }}}}
+        "404": { description: Not found }
+    delete:
+      summary: Удалить категорию
+      responses:
+        "204": { description: No content }
+        "404": { description: Not found }
+  /customers:
+    get:
+      summary: Список клиентов
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CustomerResponse' }
+    post:
+      summary: Создать клиента
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomerRequest' }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerResponse' }
+  /customers/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+    get:
+      summary: Получить клиента
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CustomerResponse' }}}}
+        "404": { description: Not found }
+    put:
+      summary: Обновить клиента
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomerRequest' }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CustomerResponse' }}}}
+        "404": { description: Not found }
+    delete:
+      summary: Удалить клиента
+      responses:
+        "204": { description: No content }
+        "404": { description: Not found }
+  /products:
+    get:
+      summary: Список товаров
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ProductResponse' }
+    post:
+      summary: Создать товар
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductRequest' }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductResponse' }
+  /products/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+    get:
+      summary: Получить товар
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ProductResponse' }}}}
+        "404": { description: Not found }
+    put:
+      summary: Обновить товар
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductRequest' }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ProductResponse' }}}}
+        "404": { description: Not found }
+    delete:
+      summary: Удалить товар
+      responses:
+        "204": { description: No content }
+        "404": { description: Not found }
+  /orders:
+    get:
+      summary: Список заказов
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/OrderResponse' }}}}}
+    post:
+      summary: Создать заказ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OrderRequest' }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/OrderResponse' }}}}
+  /orders/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+    get:
+      summary: Получить заказ
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OrderResponse' }}}}
+        "404": { description: Not found }
+    put:
+      summary: Обновить статус заказа
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OrderRequest' }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not found }
+    delete:
+      summary: Удалить заказ
+      responses:
+        "204": { description: No content }
+        "404": { description: Not found }
+  /orders/{id}/items:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+    post:
+      summary: Добавить товар в заказ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddItemRequest' }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OrderItemResponse' }}}}
+        "400": { description: Validation or not enough stock }
+        "404": { description: Not found }
+  /reports/customer-totals:
+    get:
+      summary: Суммы заказов по клиентам
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/CustomerTotalResponse' }}}}}
+  /reports/category-children:
+    get:
+      summary: Количество дочерних категорий
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/CategoryChildrenResponse' }}}}}
+  /reports/top-products-last-month:
+    get:
+      summary: Топ-5 товаров за последний месяц
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TopProductResponse' }}}}}
+
+components:
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    CategoryRequest:
+      type: object
+      required: [name, slug]
+      properties:
+        name: { type: string }
+        slug: { type: string }
+        parent_id: { type: string, format: uuid, nullable: true }
+        level: { type: integer, default: 0 }
+        is_active: { type: boolean, default: true }
+        sort_order: { type: integer, default: 0 }
+    CategoryResponse:
+      allOf:
+        - $ref: '#/components/schemas/CategoryRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+    CustomerRequest:
+      type: object
+      required: [name, email]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        address: { type: string }
+    CustomerResponse:
+      allOf:
+        - $ref: '#/components/schemas/CustomerRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+    ProductRequest:
+      type: object
+      required: [name, price, quantity]
+      properties:
+        name: { type: string }
+        price: { type: number, format: float }
+        quantity: { type: integer }
+    ProductResponse:
+      allOf:
+        - $ref: '#/components/schemas/ProductRequest'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+    OrderItemResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        product_id: { type: string, format: uuid }
+        quantity: { type: integer }
+        sub_total: { type: number, format: float }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    OrderRequest:
+      type: object
+      required: [customer_id]
+      properties:
+        customer_id: { type: string, format: uuid }
+        status: { type: string }
+    OrderResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        customer_id: { type: string, format: uuid }
+        total_price: { type: number, format: float }
+        status: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderItemResponse' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    AddItemRequest:
+      type: object
+      required: [product_id, quantity]
+      properties:
+        product_id: { type: string, format: uuid }
+        quantity: { type: integer, minimum: 1 }
+    CustomerTotalResponse:
+      type: object
+      properties:
+        customer_name: { type: string }
+        total_amount: { type: number, format: float }
+    CategoryChildrenResponse:
+      type: object
+      properties:
+        category_id: { type: string, format: uuid }
+        name: { type: string }
+        children_count: { type: integer }
+    TopProductResponse:
+      type: object
+      properties:
+        product_name: { type: string }
+        category_level_1: { type: string, nullable: true }
+        total_quantity: { type: integer }
+
