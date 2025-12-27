@@ -1,5 +1,9 @@
 # store-service
 
+![DB schema](docs/schema.png)
+
+Ответы по SQL/оптимизации: [ответы.txt](ответы.txt)
+
 Сервис для управления каталогом, заказами и отчетами (Go + chi + pgx + zap).
 
 ## Стек
@@ -22,7 +26,7 @@ go run ./cmd/store-service
 ```bash
 cd deploy/debug
 # подготовить .env (можно скопировать пример)
-cp .env.example .env
+cp env.example .env
 
 # запуск
 docker compose --env-file .env up --build          # в форграунде

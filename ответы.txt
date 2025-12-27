@@ -1,0 +1,122 @@
+2.1 Сумма заказанных товаров по клиентам:
+SELECT c.name AS customer_name, COALESCE(SUM(oi.sub_total), 0) AS total_amount
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.id
+LEFT JOIN order_items oi ON oi.order_id = o.id
+GROUP BY c.name;
+
+Суммируем по sub_total из order items, там где NULL будет 0,
+Можно суммировать по order через total_price
+
+2.2 Количество дочерних категорий первого уровня:
+SELECT parent.id, parent.name, COUNT(child.id) AS children_count
+FROM categories AS parent
+LEFT JOIN categories AS child ON child.parent_id = parent.id
+GROUP BY parent.id, parent.name;
+
+Применяем LEFT JOIN из categories на саму себя, где берем значения если child.parent_id = parent.id
+
+2.3.1 Топ-5 самых покупаемых товаров за последний месяц (по количеству):
+WITH RECURSIVE cat_path AS (
+    SELECT id, parent_id, name AS root_name, id AS root_id
+    FROM categories
+    WHERE parent_id IS NULL
+    UNION ALL
+    SELECT c.id, c.parent_id, cp.root_name, cp.root_id
+    FROM categories c
+    JOIN cat_path cp ON c.parent_id = cp.id
+)
+SELECT
+    p.name AS product_name,
+    cp.root_name AS category_level_1,
+    SUM(oi.quantity) AS total_quantity
+FROM order_items oi
+JOIN orders o ON o.id = oi.order_id
+JOIN products p ON p.id = oi.product_id
+LEFT JOIN product_categories pc ON pc.product_id = p.id
+LEFT JOIN cat_path cp ON cp.id = pc.category_id
+WHERE o.created_at >= date_trunc('month', now()) - INTERVAL '1 month'
+  AND o.created_at <  date_trunc('month', now())
+GROUP BY p.name, cp.root_name
+ORDER BY total_quantity DESC
+LIMIT 5;
+
+Используем временную таблицу CTE для запроса с рекурсивным SELECT, там идет якорная часть и рекурсивная после UNION ALL,
+Дальше идет основной запрос со множеством JOIN, интервал времени беру с 1 числа предыдущего месяца по 1 число текущего
+
+2.3.2 Идеи оптимизации:
+- Добавить отдельное поле root_category_id или root_name
+тогда можно обойтись без рекурсивного поиска
+
+SELECT
+    p.name AS product_name,
+    cat.root_name AS category_level_1,
+    SUM(oi.quantity) AS total_quantity
+FROM order_items oi
+JOIN orders o ON o.id = oi.order_id
+JOIN products p ON p.id = oi.product_id
+LEFT JOIN product_categories pc ON pc.product_id = p.id
+LEFT JOIN categories cat ON cat.id = pc.category_id
+WHERE o.created_at >= date_trunc('month', now()) - INTERVAL '1 month'
+  AND o.created_at <  date_trunc('month', now())
+  AND cat.level IS NOT NULL  -- Опционально
+GROUP BY p.name, cat.root_name
+ORDER BY total_quantity DESC
+LIMIT 5;
+
+или 
+
+SELECT
+    p.name AS product_name,
+    root_cat.name AS category_level_1,  -- Без рекурсии!
+    SUM(oi.quantity) AS total_quantity
+FROM order_items oi
+JOIN orders o ON o.id = oi.order_id
+JOIN products p ON p.id = oi.product_id
+LEFT JOIN product_categories pc ON pc.product_id = p.id
+LEFT JOIN categories cat ON cat.id = pc.category_id
+LEFT JOIN categories root_cat ON root_cat.id = cat.root_category_id  -- Просто JOIN!
+WHERE o.created_at >= date_trunc('month', now()) - INTERVAL '1 month'
+  AND o.created_at <  date_trunc('month', now())
+GROUP BY p.name, root_cat.name
+ORDER BY total_quantity DESC
+LIMIT 5;
+
+- Индексы: (orders.created_at), (order_items.order_id), (order_items.product_id), (products.id), (product_categories.product_id, product_categories.category_id), (categories.parent_id).
+
+- Материализованный view для топов за период с регулярным REFRESH (cron/pg_cron), чтобы отчёт дергал предагрегированные данные.
+
+Создаем "снимок" данных, который обновляется периодически
+CREATE MATERIALIZED VIEW monthly_product_sales AS
+SELECT
+    p.id AS product_id,
+    p.name AS product_name,
+    cat.root_name AS root_category_name,
+    DATE_TRUNC('month', o.created_at) AS month,
+    SUM(oi.quantity) AS total_quantity,
+    COUNT(*) AS order_count
+FROM order_items oi
+JOIN orders o ON o.id = oi.order_id
+JOIN products p ON p.id = oi.product_id
+LEFT JOIN product_categories pc ON pc.product_id = p.id
+LEFT JOIN categories cat ON cat.id = pc.category_id
+GROUP BY p.id, p.name, cat.root_name, DATE_TRUNC('month', o.created_at);
+
+-- Создаем индекс для быстрого поиска
+CREATE INDEX idx_mps_month ON monthly_product_sales(month);
+
+-- Теперь запрос супер-быстрый:
+SELECT product_name, root_category_name, total_quantity
+FROM monthly_product_sales
+WHERE month = DATE_TRUNC('month', NOW() - INTERVAL '1 month')
+ORDER BY total_quantity DESC
+LIMIT 5;
+
+-- Обновляем раз в день/час
+REFRESH MATERIALIZED VIEW monthly_product_sales;
+
+- Кеширование рассчитанных топов (Redis) на уровне сервиса с коротким TTL, если отчёт запрашивают часто.
+
+- Вынесение вычисления количества/сумм в background-джобы (ETL), а онлайн-запросы работают по витринам/агрегатным таблицам.
+
+- хранить еще доп поля денормализуя бд, но убрав лишние join в запросах.
